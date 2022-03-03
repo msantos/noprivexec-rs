@@ -24,15 +24,9 @@ ping: icmp open socket: Operation not permitted
 
 # Build
 
-    make
-
-    #### static executable using musl
-    ./musl-make
+    cargo build
 
 # OPTIONS
-
--h, --help
-: usage summary
 
 # ALTERNATIVES
 
