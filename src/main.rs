@@ -2,8 +2,8 @@ use std::env;
 use std::ffi::CString;
 use std::process::exit;
 
+use libc::{prctl, PR_SET_NO_NEW_PRIVS};
 use nix::unistd::execvp;
-use prctl::set_no_new_privileges;
 
 const PROGNAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -29,9 +29,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|arg| CString::new(arg.as_str()).unwrap())
         .collect();
 
-    match set_no_new_privileges(true) {
-        Ok(_) => (),
-        Err(status) => exit(status),
+    unsafe {
+        let rv = prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
+        let errno = libc::__errno_location();
+
+        if rv != 0 {
+            exit(*errno);
+        }
     }
 
     execvp(&argv[0], &argv)?;
