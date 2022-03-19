@@ -2,7 +2,7 @@ use std::env;
 use std::ffi::CString;
 use std::process::exit;
 
-use libc::{prctl, PR_SET_NO_NEW_PRIVS};
+use libc::{__errno_location, prctl, PR_SET_NO_NEW_PRIVS};
 use nix::unistd::execvp;
 
 const PROGNAME: &str = env!("CARGO_PKG_NAME");
@@ -17,6 +17,18 @@ usage: <COMMAND> <...>"#,
     exit(1);
 }
 
+fn disable_setuid() -> Result<(), i32> {
+    unsafe {
+        let rv = prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
+        let errno = __errno_location();
+
+        if rv != 0 {
+            return Err(*errno);
+        }
+    }
+    Ok(())
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args: Vec<String> = env::args().skip(1).collect();
 
@@ -29,13 +41,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|arg| CString::new(arg.as_str()).unwrap())
         .collect();
 
-    unsafe {
-        let rv = prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
-        let errno = libc::__errno_location();
-
-        if rv != 0 {
-            exit(*errno);
-        }
+    match disable_setuid() {
+        Ok(_) => (),
+        Err(errno) => exit(errno),
     }
 
     execvp(&argv[0], &argv)?;
