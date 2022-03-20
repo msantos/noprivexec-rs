@@ -2,8 +2,21 @@ use std::env;
 use std::ffi::CString;
 use std::process::exit;
 
-use libc::{__errno_location, prctl, PR_SET_NO_NEW_PRIVS};
 use nix::unistd::execvp;
+
+#[cfg(target_os = "linux")]
+use libc::{__errno_location, prctl, PR_SET_NO_NEW_PRIVS};
+
+#[cfg(target_os = "openbsd")]
+use libc::{__errno, pledge};
+
+#[cfg(target_os = "openbsd")]
+const PLEDGENAMES: &str = "stdio rpath wpath cpath dpath tmppath \
+                           inet mcast fattr chown flock unix dns getpw \
+                           sendfd recvfd tape tty proc exec prot_exec \
+                           settime ps vminfo id pf route wroute \
+                           audio video bpf unveil error disklabel \
+                           drm vmm";
 
 const PROGNAME: &str = env!("CARGO_PKG_NAME");
 const VERSION: &str = env!("CARGO_PKG_VERSION");
@@ -17,10 +30,25 @@ usage: <COMMAND> <...>"#,
     exit(1);
 }
 
+#[cfg(target_os = "linux")]
 fn disable_setuid() -> Result<(), i32> {
     unsafe {
         let rv = prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
         let errno = __errno_location();
+
+        if rv != 0 {
+            return Err(*errno);
+        }
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "openbsd")]
+fn disable_setuid() -> Result<(), i32> {
+    let pledgenames = CString::new(PLEDGENAMES).expect("CString::new failed");
+    unsafe {
+        let rv = pledge(std::ptr::null(), pledgenames.as_ptr());
+        let errno = __errno();
 
         if rv != 0 {
             return Err(*errno);
