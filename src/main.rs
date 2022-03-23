@@ -2,7 +2,7 @@ use std::env;
 use std::ffi::CString;
 use std::process::exit;
 
-use nix::unistd::execvp;
+use libc::{c_char, execvp};
 
 #[cfg(target_os = "linux")]
 use libc::{__errno_location, prctl, PR_SET_NO_NEW_PRIVS};
@@ -31,33 +31,39 @@ usage: <COMMAND> <...>"#,
 }
 
 #[cfg(target_os = "linux")]
-fn disable_setuid() -> Result<(), i32> {
+fn errno() -> i32 {
     unsafe {
-        let rv = prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0);
-        let errno = __errno_location();
-
-        if rv != 0 {
-            return Err(*errno);
-        }
+        let e = __errno_location();
+        return *e;
     }
-    Ok(())
+}
+
+#[cfg(target_os = "openbsd")]
+fn errno() -> i32 {
+    unsafe {
+        let e = __errno();
+        return *e;
+    }
+}
+
+#[cfg(target_os = "linux")]
+fn disable_setuid() -> Result<(), i32> {
+    match unsafe { prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } {
+        0 => Ok(()),
+        _ => Err(errno()),
+    }
 }
 
 #[cfg(target_os = "openbsd")]
 fn disable_setuid() -> Result<(), i32> {
     let pledgenames = CString::new(PLEDGENAMES).expect("CString::new failed");
-    unsafe {
-        let rv = pledge(std::ptr::null(), pledgenames.as_ptr());
-        let errno = __errno();
-
-        if rv != 0 {
-            return Err(*errno);
-        }
+    match unsafe { pledge(std::ptr::null(), pledgenames.as_ptr()) } {
+        0 => Ok(()),
+        _ => Err(errno()),
     }
-    Ok(())
 }
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+fn main() {
     let args: Vec<String> = env::args().skip(1).collect();
 
     if args.is_empty() {
@@ -69,12 +75,20 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|arg| CString::new(arg.as_str()).unwrap())
         .collect();
 
+    let mut p_argv: Vec<_> = argv.iter().map(|arg| arg.as_ptr()).collect();
+
+    p_argv.push(std::ptr::null());
+
+    let p: *const *const c_char = p_argv.as_ptr();
+
     match disable_setuid() {
         Ok(_) => (),
         Err(errno) => exit(errno),
     }
 
-    execvp(&argv[0], &argv)?;
+    unsafe {
+        execvp(p_argv[0], p);
+    };
 
-    unreachable!()
+    exit(errno());
 }
