@@ -34,7 +34,7 @@ usage: <COMMAND> <...>"#,
 fn errno() -> i32 {
     unsafe {
         let e = __errno_location();
-        return *e;
+        *e
     }
 }
 
@@ -42,7 +42,7 @@ fn errno() -> i32 {
 fn errno() -> i32 {
     unsafe {
         let e = __errno();
-        return *e;
+        *e
     }
 }
 
