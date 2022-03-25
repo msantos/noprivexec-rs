@@ -32,18 +32,12 @@ usage: <COMMAND> <...>"#,
 
 #[cfg(target_os = "linux")]
 fn errno() -> i32 {
-    unsafe {
-        let e = __errno_location();
-        *e
-    }
+    unsafe { *__errno_location() }
 }
 
 #[cfg(target_os = "openbsd")]
 fn errno() -> i32 {
-    unsafe {
-        let e = __errno();
-        *e
-    }
+    unsafe { *__errno() }
 }
 
 #[cfg(target_os = "linux")]
