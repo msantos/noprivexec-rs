@@ -1,3 +1,6 @@
+use libc::c_char;
+use std::ffi::CString;
+
 #[cfg(target_os = "linux")]
 use libc::{__errno_location, prctl, PR_SET_NO_NEW_PRIVS};
 
@@ -37,4 +40,18 @@ pub fn disable_setuid() -> Result<(), i32> {
         0 => Ok(()),
         _ => Err(errno()),
     }
+}
+
+pub fn execvp(argv: Vec<CString>) -> i32 {
+    let mut p_argv: Vec<_> = argv.iter().map(|arg| arg.as_ptr()).collect();
+
+    p_argv.push(std::ptr::null());
+
+    let p: *const *const c_char = p_argv.as_ptr();
+
+    unsafe {
+        libc::execvp(p_argv[0], p);
+    };
+
+    errno()
 }
