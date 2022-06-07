@@ -15,6 +15,16 @@ const PLEDGENAMES: &str = "stdio rpath wpath cpath dpath tmppath \
                            audio video bpf unveil error disklabel \
                            drm vmm";
 
+#[cfg(target_os = "freebsd")]
+//use libc::{__error, procctl, P_PID, PROC_NO_NEW_PRIVS_CTL, PROC_NO_NEW_PRIVS_ENABLE};
+use libc::{__error, c_int, c_void, procctl, P_PID};
+
+#[cfg(target_os = "freebsd")]
+const PROC_NO_NEW_PRIVS_CTL: c_int = 19;
+
+#[cfg(target_os = "freebsd")]
+const PROC_NO_NEW_PRIVS_ENABLE: c_int = 1;
+
 #[cfg(target_os = "linux")]
 pub fn errno() -> i32 {
     unsafe { *__errno_location() }
@@ -23,6 +33,11 @@ pub fn errno() -> i32 {
 #[cfg(target_os = "openbsd")]
 pub fn errno() -> i32 {
     unsafe { *__errno() }
+}
+
+#[cfg(target_os = "freebsd")]
+pub fn errno() -> i32 {
+    unsafe { *__error() }
 }
 
 #[cfg(target_os = "linux")]
@@ -37,6 +52,17 @@ pub fn disable_setuid() -> Result<(), i32> {
 pub fn disable_setuid() -> Result<(), i32> {
     let pledgenames = CString::new(PLEDGENAMES).expect("CString::new failed");
     match unsafe { pledge(std::ptr::null(), pledgenames.as_ptr()) } {
+        0 => Ok(()),
+        _ => Err(errno()),
+    }
+}
+
+#[cfg(target_os = "freebsd")]
+pub fn disable_setuid() -> Result<(), i32> {
+    let mut data: c_int = PROC_NO_NEW_PRIVS_ENABLE;
+    let p_data = &mut data as *mut c_int as *mut c_void;
+
+    match unsafe { procctl(P_PID, 0, PROC_NO_NEW_PRIVS_CTL, p_data) } {
         0 => Ok(()),
         _ => Err(errno()),
     }
