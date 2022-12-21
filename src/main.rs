@@ -13,7 +13,7 @@ fn usage() -> ! {
 usage: <COMMAND> <...>"#,
         PROGNAME, VERSION,
     );
-    exit(1);
+    exit(2);
 }
 
 fn main() {
