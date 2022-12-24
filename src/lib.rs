@@ -1,3 +1,7 @@
+//! Disable setuid privileges
+//!
+//! Remove the ability of a process to escalate privileges using the `setresuid(2)` family of
+//! syscalls or file capabilities.
 use libc::c_char;
 use std::ffi::CString;
 
@@ -25,6 +29,7 @@ const PROC_NO_NEW_PRIVS_CTL: c_int = 19;
 #[cfg(target_os = "freebsd")]
 const PROC_NO_NEW_PRIVS_ENABLE: c_int = 1;
 
+/// Retrieve the last error number of a system or library call.
 #[cfg(target_os = "linux")]
 pub fn errno() -> i32 {
     unsafe { *__errno_location() }
@@ -40,6 +45,7 @@ pub fn errno() -> i32 {
     unsafe { *__error() }
 }
 
+/// Remove the capability to escalate privileges from the running process.
 #[cfg(target_os = "linux")]
 pub fn disable_setuid() -> Result<(), i32> {
     match unsafe { prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } {
@@ -68,6 +74,8 @@ pub fn disable_setuid() -> Result<(), i32> {
     }
 }
 
+/// Replace the current process image with the a new process image specified by path and
+/// arguments.
 pub fn execvp(argv: Vec<CString>) -> i32 {
     let mut p_argv: Vec<_> = argv.iter().map(|arg| arg.as_ptr()).collect();
 
