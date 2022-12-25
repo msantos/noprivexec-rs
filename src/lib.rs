@@ -74,7 +74,7 @@ pub fn disable_setuid() -> Result<(), i32> {
     }
 }
 
-/// Replace the current process image with the a new process image specified by path and
+/// Replace the current process image with the new process image specified by path and
 /// arguments.
 pub fn execvp(argv: Vec<CString>) -> i32 {
     let mut p_argv: Vec<_> = argv.iter().map(|arg| arg.as_ptr()).collect();
