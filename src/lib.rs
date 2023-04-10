@@ -45,6 +45,11 @@ pub fn errno() -> i32 {
     unsafe { *__error() }
 }
 
+#[cfg(not(any(target_os = "linux", target_os = "openbsd", target_os = "freebsd")))]
+pub fn errno() -> i32 {
+    libc::ENOSYS
+}
+
 /// Remove the capability to escalate privileges from the running process.
 #[cfg(target_os = "linux")]
 pub fn disable_setuid() -> Result<(), i32> {
@@ -72,6 +77,11 @@ pub fn disable_setuid() -> Result<(), i32> {
         0 => Ok(()),
         _ => Err(errno()),
     }
+}
+
+#[cfg(not(any(target_os = "linux", target_os = "openbsd", target_os = "freebsd")))]
+fn disable_setuid() -> Result<(), i32> {
+    Err(errno())
 }
 
 /// Replace the current process image with the new process image specified by path and
