@@ -30,58 +30,62 @@ const PROC_NO_NEW_PRIVS_CTL: c_int = 19;
 const PROC_NO_NEW_PRIVS_ENABLE: c_int = 1;
 
 /// Retrieve the last error number of a system or library call.
-#[cfg(target_os = "linux")]
 pub fn errno() -> i32 {
-    unsafe { *__errno_location() }
-}
+    #[cfg(target_os = "linux")]
+    {
+        unsafe { *__errno_location() }
+    }
 
-#[cfg(target_os = "openbsd")]
-pub fn errno() -> i32 {
-    unsafe { *__errno() }
-}
+    #[cfg(target_os = "openbsd")]
+    {
+        unsafe { *__errno() }
+    }
 
-#[cfg(target_os = "freebsd")]
-pub fn errno() -> i32 {
-    unsafe { *__error() }
-}
+    #[cfg(target_os = "freebsd")]
+    {
+        unsafe { *__error() }
+    }
 
-#[cfg(not(any(target_os = "linux", target_os = "openbsd", target_os = "freebsd")))]
-pub fn errno() -> i32 {
-    libc::ENOSYS
+    #[cfg(not(any(target_os = "linux", target_os = "openbsd", target_os = "freebsd")))]
+    {
+        libc::ENOSYS
+    }
 }
 
 /// Remove the capability to escalate privileges from the running process.
-#[cfg(target_os = "linux")]
 pub fn disable_setuid() -> Result<(), i32> {
-    match unsafe { prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } {
-        0 => Ok(()),
-        _ => Err(errno()),
+    #[cfg(target_os = "linux")]
+    {
+        match unsafe { prctl(PR_SET_NO_NEW_PRIVS, 1, 0, 0, 0) } {
+            0 => Ok(()),
+            _ => Err(errno()),
+        }
     }
-}
 
-#[cfg(target_os = "openbsd")]
-pub fn disable_setuid() -> Result<(), i32> {
-    let pledgenames = CString::new(PLEDGENAMES).expect("CString::new failed");
-    match unsafe { pledge(std::ptr::null(), pledgenames.as_ptr()) } {
-        0 => Ok(()),
-        _ => Err(errno()),
+    #[cfg(target_os = "openbsd")]
+    {
+        let pledgenames = CString::new(PLEDGENAMES).expect("CString::new failed");
+        match unsafe { pledge(std::ptr::null(), pledgenames.as_ptr()) } {
+            0 => Ok(()),
+            _ => Err(errno()),
+        }
     }
-}
 
-#[cfg(target_os = "freebsd")]
-pub fn disable_setuid() -> Result<(), i32> {
-    let mut data: c_int = PROC_NO_NEW_PRIVS_ENABLE;
-    let p_data = &mut data as *mut c_int as *mut c_void;
+    #[cfg(target_os = "freebsd")]
+    {
+        let mut data: c_int = PROC_NO_NEW_PRIVS_ENABLE;
+        let p_data = &mut data as *mut c_int as *mut c_void;
 
-    match unsafe { procctl(P_PID, 0, PROC_NO_NEW_PRIVS_CTL, p_data) } {
-        0 => Ok(()),
-        _ => Err(errno()),
+        match unsafe { procctl(P_PID, 0, PROC_NO_NEW_PRIVS_CTL, p_data) } {
+            0 => Ok(()),
+            _ => Err(errno()),
+        }
     }
-}
 
-#[cfg(not(any(target_os = "linux", target_os = "openbsd", target_os = "freebsd")))]
-fn disable_setuid() -> Result<(), i32> {
-    Err(errno())
+    #[cfg(not(any(target_os = "linux", target_os = "openbsd", target_os = "freebsd")))]
+    {
+        Err(errno())
+    }
 }
 
 /// Replace the current process image with the new process image specified by path and
