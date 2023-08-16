@@ -20,14 +20,9 @@ const PLEDGENAMES: &str = "stdio rpath wpath cpath dpath tmppath \
                            drm vmm";
 
 #[cfg(target_os = "freebsd")]
-//use libc::{__error, procctl, P_PID, PROC_NO_NEW_PRIVS_CTL, PROC_NO_NEW_PRIVS_ENABLE};
-use libc::{__error, c_int, c_void, procctl, P_PID};
-
-#[cfg(target_os = "freebsd")]
-const PROC_NO_NEW_PRIVS_CTL: c_int = 19;
-
-#[cfg(target_os = "freebsd")]
-const PROC_NO_NEW_PRIVS_ENABLE: c_int = 1;
+use libc::{
+    __error, c_int, c_void, procctl, PROC_NO_NEW_PRIVS_CTL, PROC_NO_NEW_PRIVS_ENABLE, P_PID,
+};
 
 /// Retrieve the last error number of a system or library call.
 pub fn errno() -> i32 {
