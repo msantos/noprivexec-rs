@@ -24,7 +24,9 @@ ping: icmp open socket: Operation not permitted
 
 # Build
 
-    cargo build
+```
+cargo build
+```
 
 # OPTIONS
 
@@ -34,4 +36,4 @@ ping: icmp open socket: Operation not permitted
 
 # SEE ALSO
 
-_exec(3)_, _prctl_(2)
+*exec(3)*, *prctl*(2)
