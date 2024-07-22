@@ -2,6 +2,11 @@
 name = "noprivexec"
 version = "0.5.2"
 edition = "2021"
+license = "ISC"
+description = "Disable capability to use setuid privileges"
+readme = "README.md"
+homepage = "https://codeberg.org/msantos/noprivexec-rs"
+repository = "https://codeberg.org/msantos/noprivexec-rs"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
